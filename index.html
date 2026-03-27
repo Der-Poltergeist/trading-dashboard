@@ -585,6 +585,8 @@ function renderContractRollover() {
 document.addEventListener('DOMContentLoaded', function() {
     renderContractRollover();
     loadNews();
+    // Auto-refresh News alle 4 Stunden
+    setInterval(() => { loadNews(); }, 4 * 60 * 60 * 1000);
 });
 </script>
 </body>
