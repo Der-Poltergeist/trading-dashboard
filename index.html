@@ -1,445 +1,559 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trading Dashboard - Public View</title>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0a0e17;--bg-card:#111827;--bg-card-alt:#0f1523;--bg-header:#0d1220;
-  --border:#1e293b;--border-light:#2a3a52;
-  --text:#e2e8f0;--text-dim:#8892a8;--text-muted:#4a5568;
-  --green:#00ff88;--red:#ff3355;--blue:#3b82f6;--yellow:#fbbf24;--orange:#f97316;
-  --purple:#a78bfa;--cyan:#22d3ee;
-}
-html{font-size:14px}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
-a{color:var(--blue);text-decoration:none}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hallo Trader – Public View</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{--bg-primary:#0a0e17;--bg-secondary:#0f2035;--bg-card:#152742;--bg-elevated:#1b3050;--border:#254060;--text-primary:#e4eaf2;--text-secondary:#8ba4c0;--text-muted:#506880;--green:#00d68f;--green-bg:rgba(0,214,143,.12);--green-light:rgba(0,214,143,.08);--yellow:#ffb800;--yellow-bg:rgba(255,184,0,.15);--red:#ff5a6e;--red-bg:rgba(255,90,110,.12);--red-light:rgba(255,90,110,.08);--accent:#3b82f6;--accent-light:#60a5fa;--accent-bg:rgba(59,130,246,.15);--xp-gold:#f59e0b;--radius:12px}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Outfit',sans-serif;background:var(--bg-primary);color:var(--text-primary);min-height:100vh;padding:24px}
+        .page-container{max-width:900px;margin:0 auto}
+        .page-header{margin-bottom:24px;text-align:center}
+        .page-title{font-size:1.6rem;font-weight:700;margin-bottom:4px}
+        .page-subtitle{color:var(--text-secondary);font-size:.95rem}
+        .card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+        .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+        .card-title{font-size:1rem;font-weight:600}
+        .btn{padding:8px 12px;border-radius:var(--radius);font-weight:600;cursor:pointer;border:none;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:.85rem;transition:all .2s;min-height:36px}
+        .btn:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.15)}
+        .btn-primary{background:var(--accent);color:#fff}
+        .btn-primary:hover{background:var(--accent-light)}
+        .btn-secondary{background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border)}
+        .btn-secondary:hover{background:var(--bg-card);border-color:var(--accent)}
+        .btn-sm{padding:8px 12px;font-size:.85rem;min-height:36px}
 
-/* Header */
-.header{text-align:center;padding:1.5rem 1rem .8rem;border-bottom:1px solid var(--border)}
-.header h1{font-size:1.6rem;font-weight:700;letter-spacing:.04em;background:linear-gradient(135deg,var(--green),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.header .subtitle{font-size:.75rem;color:var(--text-muted);letter-spacing:.15em;text-transform:uppercase;margin-top:.2rem}
+        /* Weltzeituhr Widget */
+        .trading-times{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+        .time-zone{background:var(--bg-elevated);border-radius:8px;padding:14px 10px;text-align:center;position:relative}
+        .time-label{display:block;font-size:1.2rem;color:var(--text-secondary);margin-bottom:6px;font-weight:600}
+        .time-value{display:block;font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:700}
+        .time-tz{display:block;font-size:.8rem;color:var(--text-muted);margin-top:6px}
+        .time-zone.is-day{background:linear-gradient(135deg,rgba(255,200,50,.1),rgba(255,150,50,.05))}
+        .time-zone.is-day::before{content:'☀️';position:absolute;top:8px;right:8px;font-size:.75rem}
+        .time-zone.is-night{background:linear-gradient(135deg,rgba(50,50,100,.2),rgba(30,30,60,.1))}
+        .time-zone.is-night::before{content:'🌙';position:absolute;top:8px;right:8px;font-size:.75rem}
+        .time-zone.is-night .time-value{color:var(--text-secondary)}
+        .time-zone.local{border:2px solid var(--accent);box-shadow:0 0 12px rgba(59,130,246,.3)}
 
-/* Layout */
-.container{flex:1;max-width:1400px;width:100%;margin:0 auto;padding:1rem;display:flex;flex-direction:column;gap:1rem}
-.row-top{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+        /* Departure Board Calendar */
+        .dep-board{font-family:'JetBrains Mono',monospace;border-radius:var(--radius);overflow:hidden;background:var(--bg-card);border:1px solid var(--border)}
+        .dep-top{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg-elevated);border-bottom:2px solid #06b6d4}
+        .dep-title{font-size:12px;font-weight:700;color:#22d3ee;letter-spacing:2px;text-transform:uppercase}
+        .dep-clock{font-size:12px;font-weight:700;color:#22d3ee}
+        .dep-head{display:grid;grid-template-columns:60px 48px 1fr 68px 68px;gap:4px;padding:5px 12px;font-size:9px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;background:var(--bg-primary)}
+        .dep-row{display:grid;grid-template-columns:60px 48px 1fr 68px 68px;gap:4px;padding:6px 12px;font-size:12px;align-items:center;border-bottom:1px solid rgba(255,255,255,.03)}
+        .dep-row:nth-child(even){background:rgba(255,255,255,.015)}
+        .dep-row.dep-hot{background:rgba(255,71,87,.06);position:relative}
+        .dep-row.dep-hot::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:#ff4757}
+        .dep-time{font-weight:700;font-size:13px;color:#22d3ee}
+        .dep-row.dep-hot .dep-time{color:#ff4757}
+        .dep-ccy{font-size:10px;font-weight:700;padding:2px 5px;border-radius:3px;text-align:center}
+        .dep-ccy-usd{background:rgba(96,165,250,.15);color:#60a5fa}
+        .dep-ccy-eur{background:rgba(255,215,64,.12);color:#ffd740}
+        .dep-ccy-gbp{background:rgba(224,64,251,.12);color:#e040fb}
+        .dep-ccy-jpy{background:rgba(102,187,106,.12);color:#66bb6a}
+        .dep-ccy-cad{background:rgba(255,112,67,.12);color:#ff7043}
+        .dep-ccy-aud{background:rgba(0,210,106,.12);color:#00d26a}
+        .dep-ccy-chf{background:rgba(255,255,255,.08);color:#a0a0b0}
+        .dep-ccy-nzd{background:rgba(0,210,106,.12);color:#00d26a}
+        .dep-ccy-cny{background:rgba(255,71,87,.12);color:#ff4757}
+        .dep-ev{font-size:11px;color:var(--text-secondary)}
+        .dep-ev-hot{font-size:11px;color:var(--text-primary);font-weight:700;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+        .dep-pill{font-size:8px;padding:1px 6px;border-radius:10px;font-weight:700;letter-spacing:.5px;display:inline-block}
+        .dep-pill-red{background:#ff4757;color:#fff}
+        .dep-pill-pink{background:#e040fb;color:#fff}
+        .dep-pill-gold{background:#fbbf24;color:#000}
+        .dep-blinkers{display:inline-flex;gap:5px;margin-left:2px}
+        .dep-bk{width:10px;height:10px;border-radius:50%;background:#ff4757}
+        .dep-bk1{animation:depBlink1 1.4s ease-in-out infinite}
+        .dep-bk2{animation:depBlink2 1.4s ease-in-out infinite}
+        @keyframes depBlink1{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.08;transform:scale(.65)}}
+        @keyframes depBlink2{0%,100%{opacity:.08;transform:scale(.65)}50%{opacity:1;transform:scale(1)}}
+        @keyframes contractGlow{0%,100%{opacity:1;transform:scale(1);filter:brightness(1)}50%{opacity:1;transform:scale(1.15);filter:brightness(1.8) drop-shadow(0 0 6px rgba(255,71,87,.7))}}
+        .dep-val{font-size:10px;color:var(--text-muted);text-align:right}
+        .dep-val b{color:var(--text-secondary);font-weight:700}
+        .dep-sep{padding:4px 12px;font-size:9px;color:#22d3ee;letter-spacing:2px;text-transform:uppercase;background:rgba(6,182,212,.04);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+        .dep-footer{padding:6px 12px;font-size:9px;color:var(--text-muted);text-align:center;letter-spacing:1px;background:var(--bg-primary)}
 
-/* Card */
-.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.card-head{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1rem;background:var(--bg-header);border-bottom:1px solid var(--border)}
-.card-head h2{font-size:.85rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-dim)}
-.card-body{padding:1rem}
+        /* Footer */
+        .site-footer{text-align:center;padding:24px 0 12px;color:var(--text-muted);font-size:.8rem}
 
-/* ---- WORLD CLOCK ---- */
-.clock-grid{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:center}
-.clock-item{flex:1 1 130px;max-width:180px;text-align:center;padding:.8rem .5rem;border-radius:8px;background:var(--bg-card-alt);border:1px solid var(--border);transition:border-color .3s}
-.clock-item.highlight{border-color:var(--green);box-shadow:0 0 12px rgba(0,255,136,.08)}
-.clock-city{font-size:.65rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted);margin-bottom:.3rem}
-.clock-tz{font-size:.6rem;color:var(--text-dim);margin-bottom:.4rem}
-.clock-time{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace;font-size:1.35rem;font-weight:700;color:var(--text);letter-spacing:.04em}
-.clock-date{font-size:.6rem;color:var(--text-muted);margin-top:.25rem}
-.clock-item.highlight .clock-time{color:var(--green)}
-
-/* ---- ROLLOVER ---- */
-.rollover-grid{display:flex;gap:.8rem;flex-wrap:wrap}
-.rollover-card{flex:1;min-width:200px;padding:1rem;border-radius:8px;background:var(--bg-card-alt);border:1px solid var(--border)}
-.rollover-symbol{font-family:monospace;font-size:1.1rem;font-weight:700;color:var(--cyan)}
-.rollover-name{font-size:.7rem;color:var(--text-muted);margin-bottom:.8rem}
-.rollover-row{display:flex;justify-content:space-between;padding:.25rem 0;font-size:.78rem}
-.rollover-label{color:var(--text-dim)}
-.rollover-val{font-family:monospace;color:var(--text)}
-.rollover-val.soon{color:var(--yellow)}
-.rollover-val.imminent{color:var(--red);font-weight:700}
-.days-badge{display:inline-block;padding:.15rem .55rem;border-radius:20px;font-size:.75rem;font-weight:700;font-family:monospace;margin-top:.5rem}
-.days-badge.ok{background:rgba(0,255,136,.1);color:var(--green)}
-.days-badge.warn{background:rgba(251,191,36,.12);color:var(--yellow)}
-.days-badge.danger{background:rgba(255,51,85,.12);color:var(--red)}
-
-/* ---- CALENDAR ---- */
-.cal-controls{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.8rem;align-items:center}
-.cal-controls .spacer{flex:1}
-.btn{padding:.3rem .7rem;border:1px solid var(--border-light);border-radius:6px;background:transparent;color:var(--text-dim);font-size:.72rem;cursor:pointer;transition:all .15s;font-family:inherit}
-.btn:hover{border-color:var(--blue);color:var(--text)}
-.btn.active{background:var(--blue);border-color:var(--blue);color:#fff}
-.btn-refresh{border-color:var(--green);color:var(--green)}
-.btn-refresh:hover{background:rgba(0,255,136,.1)}
-.impact-filters{display:flex;gap:.3rem;align-items:center}
-.impact-filters span{font-size:.65rem;color:var(--text-muted);margin-right:.2rem}
-
-.cal-meta{font-size:.65rem;color:var(--text-muted);margin-bottom:.6rem}
-
-.cal-table{width:100%;border-collapse:collapse}
-.cal-table th{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);text-align:left;padding:.4rem .5rem;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg-card)}
-.cal-table td{padding:.45rem .5rem;border-bottom:1px solid rgba(30,41,59,.5);font-size:.78rem;vertical-align:middle}
-.cal-table tr:hover td{background:rgba(59,130,246,.04)}
-.cal-table tr.high td{border-left:2px solid var(--red)}
-.cal-table tr.medium td{border-left:2px solid var(--yellow)}
-.cal-table tr.low td{border-left:2px solid var(--text-muted)}
-.cal-date-row td{background:var(--bg-header);font-weight:600;font-size:.72rem;color:var(--blue);letter-spacing:.04em;padding:.5rem;border-left:none!important}
-
-.pill{display:inline-block;padding:.1rem .45rem;border-radius:4px;font-size:.65rem;font-weight:600;letter-spacing:.03em}
-.pill-fomc{background:rgba(255,51,85,.15);color:var(--red)}
-.pill-nfp{background:rgba(251,191,36,.15);color:var(--yellow)}
-.pill-cpi{background:rgba(167,139,250,.15);color:var(--purple)}
-.pill-gdp{background:rgba(34,211,238,.15);color:var(--cyan)}
-.pill-pmi{background:rgba(249,115,22,.15);color:var(--orange)}
-.pill-rate{background:rgba(255,51,85,.15);color:var(--red)}
-
-.currency-badge{display:inline-block;padding:.1rem .35rem;border-radius:3px;font-size:.65rem;font-weight:700;font-family:monospace;background:rgba(255,255,255,.06);color:var(--text-dim)}
-.currency-badge.USD{color:var(--green);background:rgba(0,255,136,.08)}
-.currency-badge.EUR{color:var(--blue);background:rgba(59,130,246,.1)}
-.currency-badge.GBP{color:var(--purple);background:rgba(167,139,250,.1)}
-.currency-badge.JPY{color:var(--red);background:rgba(255,51,85,.08)}
-.currency-badge.CAD{color:var(--orange);background:rgba(249,115,22,.1)}
-.currency-badge.AUD{color:var(--yellow);background:rgba(251,191,36,.1)}
-.currency-badge.CHF{color:var(--cyan);background:rgba(34,211,238,.1)}
-.currency-badge.NZD{color:#6ee7b7;background:rgba(110,231,183,.1)}
-.currency-badge.CNY{color:#f87171;background:rgba(248,113,113,.08)}
-
-.cal-scroll{max-height:520px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-.cal-scroll::-webkit-scrollbar{width:5px}
-.cal-scroll::-webkit-scrollbar-track{background:transparent}
-.cal-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-
-.cal-empty{text-align:center;padding:2rem;color:var(--text-muted);font-size:.85rem}
-.cal-loading{text-align:center;padding:2rem;color:var(--text-dim)}
-.cal-loading .spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin-right:.5rem;vertical-align:middle}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* Footer */
-.footer{text-align:center;padding:1rem;font-size:.65rem;color:var(--text-muted);border-top:1px solid var(--border)}
-
-/* Responsive */
-@media(max-width:900px){
-  .row-top{grid-template-columns:1fr}
-}
-@media(max-width:600px){
-  html{font-size:13px}
-  .clock-item{flex:1 1 100px;padding:.6rem .3rem}
-  .clock-time{font-size:1.1rem}
-  .cal-controls{gap:.3rem}
-}
-</style>
+        /* Responsive */
+        @media(max-width:768px){
+            body{padding:12px}
+            .trading-times{grid-template-columns:repeat(2,1fr)}
+            .trading-times .time-zone:last-child{grid-column:span 2}
+            .time-value{font-size:1.2rem}
+            .dep-head,.dep-row{grid-template-columns:50px 40px 1fr 55px 55px;font-size:11px}
+            .dep-time{font-size:12px}
+            #contractRolloverContent{grid-template-columns:repeat(2,1fr) !important}
+        }
+        @media(max-width:480px){
+            .trading-times{grid-template-columns:1fr 1fr}
+            #contractRolloverContent{grid-template-columns:1fr !important}
+        }
+    </style>
 </head>
 <body>
-
-<div class="header">
-  <h1>Hallo Trader</h1>
-  <div class="subtitle">Public View</div>
-</div>
-
-<div class="container">
-  <!-- Row 1: World Clock (full width) -->
-  <div class="card">
-    <div class="card-head"><h2>Weltzeituhr</h2></div>
-    <div class="card-body">
-      <div class="clock-grid" id="clockGrid"></div>
-    </div>
-  </div>
-
-  <!-- Row 2: Calendar -->
-  <div class="card">
-    <div class="card-head">
-      <h2>Economic Calendar</h2>
-      <div style="display:flex;gap:.4rem;align-items:center">
-        <span class="cal-meta" id="calMeta"></span>
-        <button class="btn btn-refresh" onclick="fetchCalendar()" title="Refresh">&#x21bb; Refresh</button>
-      </div>
-    </div>
-    <div class="card-body">
-      <div class="cal-controls">
-        <button class="btn active" data-range="today" onclick="setRange('today',this)">Today</button>
-        <button class="btn" data-range="tomorrow" onclick="setRange('tomorrow',this)">Today + Tomorrow</button>
-        <button class="btn" data-range="week" onclick="setRange('week',this)">Week</button>
-        <div class="spacer"></div>
-        <div class="impact-filters">
-          <span>Impact:</span>
-          <button class="btn active" data-impact="High" onclick="toggleImpact('High',this)">High</button>
-          <button class="btn active" data-impact="Medium" onclick="toggleImpact('Medium',this)">Medium</button>
-          <button class="btn active" data-impact="Low" onclick="toggleImpact('Low',this)">Low</button>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="page-header">
+            <div class="page-title">Hallo Trader</div>
+            <div class="page-subtitle">Public View</div>
         </div>
-      </div>
-      <div class="cal-scroll" id="calScroll">
-        <div class="cal-loading"><span class="spinner"></span> Loading calendar data&hellip;</div>
-      </div>
-    </div>
-  </div>
-</div>
 
-  <!-- Row 3: Contract Rollover -->
-  <div class="card">
-    <div class="card-head"><h2>Kontraktwechsel</h2></div>
-    <div class="card-body">
-      <div class="rollover-grid" id="rolloverGrid"></div>
-    </div>
-  </div>
-</div>
+        <!-- 1. Weltzeituhr -->
+        <div class="card">
+            <div class="card-header"><div class="card-title">🌍 Weltzeituhr</div></div>
+            <div class="trading-times" id="tradingTimes">
+                <div class="time-zone"><span class="time-label">🇺🇸 Chicago</span><span class="time-value" id="timeCHI">--:-- AM</span><span class="time-tz" id="tzCHI">CT (UTC-6)</span></div>
+                <div class="time-zone"><span class="time-label">🇺🇸 New York</span><span class="time-value" id="timeNY">--:-- AM</span><span class="time-tz" id="tzNY">ET (UTC-5)</span></div>
+                <div class="time-zone local"><span class="time-label">🇩🇪 Frankfurt</span><span class="time-value" id="timeFRA">--:--</span><span class="time-tz" id="tzFRA">CET (UTC+1)</span></div>
+                <div class="time-zone"><span class="time-label">🇦🇪 Dubai</span><span class="time-value" id="timeDXB">--:--</span><span class="time-tz" id="tzDXB">GST (UTC+4)</span></div>
+                <div class="time-zone"><span class="time-label">🇯🇵 Tokyo</span><span class="time-value" id="timeTYO">--:--</span><span class="time-tz" id="tzTYO">JST (UTC+9)</span></div>
+            </div>
+        </div>
 
-<div class="footer">Powered by ForexFactory &middot; GitHub Pages</div>
+        <!-- 2. News-Kalender -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">📅 News-Kalender</div>
+                <span style="font-size:.75rem;color:var(--text-muted)">ForexFactory (CET)</span>
+            </div>
+            <div id="newsContent" style="min-height:100px">
+                <p style="color:var(--text-muted);text-align:center;padding:20px">Lade News...</p>
+            </div>
+        </div>
+
+        <!-- 3. Kontraktwechsel -->
+        <div class="card">
+            <div class="card-title" style="margin-bottom:12px">📋 Kontraktwechsel</div>
+            <div id="contractRolloverContent" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px"></div>
+        </div>
+
+        <!-- Footer -->
+        <div class="site-footer">Powered by ForexFactory &middot; GitHub Pages</div>
+    </div>
 
 <script>
-/* ================================================================
-   WORLD CLOCK
-   ================================================================ */
-const CLOCKS = [
-  { city: 'Chicago',   tz: 'America/Chicago',    label: 'CT',  h12: true,  highlight: false },
-  { city: 'New York',  tz: 'America/New_York',   label: 'ET',  h12: true,  highlight: false },
-  { city: 'Frankfurt', tz: 'Europe/Berlin',       label: 'CET', h12: false, highlight: true  },
-  { city: 'Dubai',     tz: 'Asia/Dubai',          label: 'GST', h12: false, highlight: false },
-  { city: 'Tokyo',     tz: 'Asia/Tokyo',          label: 'JST', h12: false, highlight: false },
-];
-
-function renderClocks() {
-  const grid = document.getElementById('clockGrid');
-  grid.innerHTML = CLOCKS.map(c => {
+// ==================== WELTZEITUHR ====================
+function updateTradingTimes() {
     const now = new Date();
-    const fmt = new Intl.DateTimeFormat('en-US', {
-      timeZone: c.tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: c.h12
+    const zones = [
+        { id: 'timeCHI', tzId: 'tzCHI', tz: 'America/Chicago', format: '12h', abbr: 'CT', utcStd: -6, utcDst: -5 },
+        { id: 'timeNY', tzId: 'tzNY', tz: 'America/New_York', format: '12h', abbr: 'ET', utcStd: -5, utcDst: -4 },
+        { id: 'timeFRA', tzId: 'tzFRA', tz: 'Europe/Berlin', format: '24h', abbr: 'CET', abbrDst: 'CEST', utcStd: 1, utcDst: 2, isLocal: true },
+        { id: 'timeDXB', tzId: 'tzDXB', tz: 'Asia/Dubai', format: '24h', abbr: 'GST', utcStd: 4, utcDst: 4 },
+        { id: 'timeTYO', tzId: 'tzTYO', tz: 'Asia/Tokyo', format: '24h', abbr: 'JST', utcStd: 9, utcDst: 9 }
+    ];
+
+    zones.forEach(z => {
+        const timeEl = document.getElementById(z.id);
+        const tzEl = document.getElementById(z.tzId);
+        if (!timeEl) return;
+
+        // Get time in timezone
+        const options = { timeZone: z.tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: z.format === '12h' };
+        const timeStr = now.toLocaleTimeString('en-US', options);
+        timeEl.textContent = timeStr;
+
+        // Determine if DST is active
+        const jan = new Date(now.getFullYear(), 0, 1);
+        const jul = new Date(now.getFullYear(), 6, 1);
+        const janOffset = new Date(jan.toLocaleString('en-US', { timeZone: z.tz })).getTime() - jan.getTime();
+        const julOffset = new Date(jul.toLocaleString('en-US', { timeZone: z.tz })).getTime() - jul.getTime();
+        const nowOffset = new Date(now.toLocaleString('en-US', { timeZone: z.tz })).getTime() - now.getTime();
+        const isDst = Math.max(janOffset, julOffset) === nowOffset;
+
+        // Update timezone label
+        const utcOffset = isDst ? z.utcDst : z.utcStd;
+        const abbrName = z.abbrDst ? (isDst ? z.abbrDst : z.abbr) : z.abbr;
+        const utcStr = utcOffset >= 0 ? 'UTC+' + utcOffset : 'UTC' + utcOffset;
+        if (tzEl) tzEl.textContent = abbrName + ' (' + utcStr + ')';
+
+        // Day/night
+        const localTime = new Date(now.toLocaleString('en-US', { timeZone: z.tz }));
+        const hours = localTime.getHours();
+        const isDay = hours >= 6 && hours < 20;
+        timeEl.parentElement.classList.toggle('is-day', isDay);
+        timeEl.parentElement.classList.toggle('is-night', !isDay);
     });
-    const dateFmt = new Intl.DateTimeFormat('en-US', {
-      timeZone: c.tz, weekday: 'short', month: 'short', day: 'numeric'
+}
+updateTradingTimes();
+setInterval(updateTradingTimes, 1000);
+
+
+// ==================== NEWS-KALENDER ====================
+let newsData = [];
+let newsImpactFilter = ['High', 'Holiday'];
+let newsTimePeriod = 'Heute';
+let specialNewsKeywords = ['FOMC', 'NFP', 'Non-Farm', 'Nonfarm', 'CPI', 'Consumer Price Index'];
+let specialNewsCurrencies = ['USD'];
+
+function formatTime24h(timeStr) {
+    if (!timeStr || timeStr === '\u2014' || timeStr === 'All Day' || timeStr === 'Tentative') return timeStr;
+    var s = timeStr.trim();
+    if (/^\d{1,2}:\d{2}$/.test(s) && !s.match(/am|pm/i)) return s.length < 5 ? ('0' + s) : s;
+    var match = s.match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);
+    if (!match) return s;
+    var h = parseInt(match[1]);
+    var m = match[2];
+    var ap = match[3].toLowerCase();
+    if (ap === 'pm' && h !== 12) h += 12;
+    if (ap === 'am' && h === 12) h = 0;
+    return (h < 10 ? '0' : '') + h + ':' + m;
+}
+
+function filterNewsByPeriod(newsArray, period) {
+    const now = new Date();
+    const todayISO = now.toISOString().split('T')[0];
+    const tomorrowISO = new Date(now.getTime() + 24*60*60*1000).toISOString().split('T')[0];
+
+    if (period === 'Heute') {
+        return newsArray.filter(item => item.date && item.date.includes(todayISO));
+    } else if (period === 'Heute + Morgen') {
+        return newsArray.filter(item =>
+            item.date && (item.date.includes(todayISO) || item.date.includes(tomorrowISO))
+        );
+    } else {
+        return newsArray.filter(item => {
+            if (!item.date) return true;
+            return item.date >= todayISO;
+        });
+    }
+}
+
+async function loadNews() {
+    try {
+        // Try ForexFactory directly via CORS proxies
+        const proxies = [
+            'https://api.allorigins.win/raw?url=',
+            'https://corsproxy.io/?',
+            ''
+        ];
+        const ffUrl = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
+        let data = null;
+
+        for (const proxy of proxies) {
+            try {
+                const res = await fetch(proxy + encodeURIComponent(ffUrl), { signal: AbortSignal.timeout(8000) });
+                if (res.ok) {
+                    const raw = await res.json();
+                    // Transform ForexFactory format to our format
+                    data = raw.map(item => ({
+                        date: item.date ? item.date.split('T')[0] : '',
+                        time: item.time || '',
+                        currency: item.country || '',
+                        title: item.title || '',
+                        impact: item.impact || 'Low',
+                        forecast: item.forecast || '',
+                        previous: item.previous || ''
+                    }));
+                    break;
+                }
+            } catch(e) { continue; }
+        }
+
+        if (data) {
+            newsData = data;
+            renderNews();
+        } else {
+            document.getElementById('newsContent').innerHTML = '<p style="color:var(--red);text-align:center;padding:20px">News konnten nicht geladen werden</p>';
+        }
+    } catch(e) {
+        document.getElementById('newsContent').innerHTML = '<p style="color:var(--red);text-align:center;padding:20px">Fehler beim Laden</p>';
+    }
+}
+
+function renderNews() {
+    const container = document.getElementById('newsContent');
+
+    const periodFiltered = filterNewsByPeriod(newsData, newsTimePeriod);
+    const filtered = periodFiltered.filter(item => newsImpactFilter.includes(item.impact));
+
+    let html = '';
+
+    // Zeitraum Filter
+    html += '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">';
+    ['Heute', 'Heute + Morgen', 'Wochenübersicht'].forEach(period => {
+        const active = newsTimePeriod === period;
+        html += '<button class="btn btn-sm ' + (active ? 'btn-primary' : 'btn-secondary') + '" onclick="setNewsPeriod(\'' + period + '\')">' + period + '</button>';
     });
-    return `<div class="clock-item${c.highlight ? ' highlight' : ''}">
-      <div class="clock-city">${c.city}</div>
-      <div class="clock-tz">${c.label}</div>
-      <div class="clock-time">${fmt.format(now)}</div>
-      <div class="clock-date">${dateFmt.format(now)}</div>
-    </div>`;
-  }).join('');
-}
-renderClocks();
-setInterval(renderClocks, 1000);
+    html += '</div>';
 
-/* ================================================================
-   CONTRACT ROLLOVER
-   ================================================================ */
-function getNthFriday(year, month, n) {
-  let d = new Date(year, month, 1);
-  let count = 0;
-  while (count < n) {
-    if (d.getDay() === 5) count++;
-    if (count < n) d.setDate(d.getDate() + 1);
-  }
-  return d;
-}
+    // Impact Filter
+    html += '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">';
+    ['High', 'Medium', 'Low', 'Holiday'].forEach(impact => {
+        const active = newsImpactFilter.includes(impact);
+        const icon = impact === 'High' ? '🔴' : impact === 'Medium' ? '🟡' : impact === 'Holiday' ? '🏖️' : '🟢';
+        html += '<button class="btn btn-sm ' + (active ? 'btn-primary' : 'btn-secondary') + '" onclick="toggleNewsFilter(\'' + impact + '\')">' + icon + ' ' + impact + '</button>';
+    });
+    html += '</div>';
 
-function getContractMonth(d) {
-  const months = [2, 5, 8, 11]; // Mar Jun Sep Dec (0-indexed)
-  for (const m of months) {
-    const rollover = getNthFriday(d.getFullYear(), m, 2);
-    if (d <= rollover) return { year: d.getFullYear(), month: m };
-  }
-  return { year: d.getFullYear() + 1, month: 2 };
-}
+    if (!filtered || filtered.length === 0) {
+        html += '<p style="color:var(--text-muted);text-align:center;padding:20px">Keine News f\u00fcr gew\u00e4hlte Filter</p>';
+        container.innerHTML = html;
+        return;
+    }
 
-function contractCode(year, month) {
-  const codes = { 2: 'H', 5: 'M', 8: 'U', 11: 'Z' };
-  const names = { 2: 'March', 5: 'June', 8: 'September', 11: 'December' };
-  return { code: codes[month] + (year % 100), name: names[month] + ' ' + year };
-}
+    // Departure Board
+    const now = new Date();
+    const clockStr = now.toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'}) + ' CET';
 
-function nextContractMonth(cm) {
-  const months = [2, 5, 8, 11];
-  const idx = months.indexOf(cm.month);
-  if (idx < 3) return { year: cm.year, month: months[idx + 1] };
-  return { year: cm.year + 1, month: 2 };
-}
+    html += '<div class="dep-board">';
+    html += '<div class="dep-top"><div class="dep-title">Economic departures</div><div class="dep-clock">' + clockStr + '</div></div>';
+    html += '<div class="dep-head"><span>Time</span><span>Ccy</span><span>Event</span><span style="text-align:right">Fcst</span><span style="text-align:right">Prev</span></div>';
 
-function renderRollover() {
-  const contracts = [
-    { symbol: 'MNQ', name: 'Micro E-mini Nasdaq-100' },
-    { symbol: 'MES', name: 'Micro E-mini S&P 500' },
-  ];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const grid = document.getElementById('rolloverGrid');
-  grid.innerHTML = contracts.map(c => {
-    const cm = getContractMonth(today);
-    const nc = nextContractMonth(cm);
-    const rollDate = getNthFriday(cm.year, cm.month, 2);
-    const diff = Math.ceil((rollDate - today) / 86400000);
-    const cc = contractCode(cm.year, cm.month);
-    const ncc = contractCode(nc.year, nc.month);
-    const badgeClass = diff <= 3 ? 'danger' : diff <= 14 ? 'warn' : 'ok';
-    const rollStr = rollDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-    return `<div class="rollover-card">
-      <div class="rollover-symbol">${c.symbol}</div>
-      <div class="rollover-name">${c.name}</div>
-      <div class="rollover-row"><span class="rollover-label">Front Month</span><span class="rollover-val">${c.symbol}${cc.code} (${cc.name})</span></div>
-      <div class="rollover-row"><span class="rollover-label">Next Contract</span><span class="rollover-val">${c.symbol}${ncc.code} (${ncc.name})</span></div>
-      <div class="rollover-row"><span class="rollover-label">Rollover Date</span><span class="rollover-val">${rollStr}</span></div>
-      <div style="text-align:center;margin-top:.3rem">
-        <span class="days-badge ${badgeClass}">${diff === 0 ? 'TODAY' : diff + ' day' + (diff !== 1 ? 's' : '') + ' left'}</span>
-      </div>
-    </div>`;
-  }).join('');
-}
-renderRollover();
+    // Group by date
+    const byDate = {};
+    filtered.forEach(item => {
+        const d = item.date || 'Unknown';
+        if (!byDate[d]) byDate[d] = [];
+        byDate[d].push(item);
+    });
 
-/* ================================================================
-   ECONOMIC CALENDAR
-   ================================================================ */
-const API_URL = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
-let calendarData = [];
-let currentRange = 'today';
-let activeImpacts = new Set(['High', 'Medium', 'Low']);
+    Object.keys(byDate).sort().forEach(dateKey => {
+        let displayDate = dateKey;
+        try {
+            const d = new Date(dateKey + 'T00:00:00');
+            const today = new Date(); today.setHours(0,0,0,0);
+            const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+            const dStr = d.toISOString().split('T')[0];
+            const prefix = dStr === today.toISOString().split('T')[0] ? 'Today' : dStr === tomorrow.toISOString().split('T')[0] ? 'Tomorrow' : '';
+            const dayName = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            displayDate = prefix ? prefix + ' \u2014 ' + dayName : dayName;
+        } catch(e) {}
 
-function setRange(range, btn) {
-  currentRange = range;
-  document.querySelectorAll('.cal-controls > .btn[data-range]').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderCalendar();
-}
+        html += '<div class="dep-sep">' + displayDate + '</div>';
 
-function toggleImpact(impact, btn) {
-  if (activeImpacts.has(impact)) activeImpacts.delete(impact);
-  else activeImpacts.add(impact);
-  btn.classList.toggle('active');
-  renderCalendar();
+        byDate[dateKey].forEach(item => {
+            const timeStr = formatTime24h(item.time) || '\u2014';
+            const currency = (item.currency || '?').toUpperCase();
+            const title = item.title || 'Unknown Event';
+            const forecast = item.forecast || '\u2014';
+            const previous = item.previous || '\u2014';
+
+            const keywordMatch = specialNewsKeywords.some(kw => title.toUpperCase().includes(kw.toUpperCase()));
+            const currencyMatch = specialNewsCurrencies.length === 0 || specialNewsCurrencies.some(c => c.toUpperCase() === currency.toUpperCase());
+            const isSpecial = keywordMatch && currencyMatch;
+            const rowClass = isSpecial ? 'dep-row dep-hot' : 'dep-row';
+
+            const ccyClass = 'dep-ccy dep-ccy-' + currency.toLowerCase();
+
+            let evHtml = '';
+            if (isSpecial) {
+                let pillLabel = '';
+                let pillClass = 'dep-pill dep-pill-red';
+                if (title.toUpperCase().includes('FOMC')) { pillLabel = 'FOMC'; pillClass = 'dep-pill dep-pill-red'; }
+                else if (title.toUpperCase().includes('NFP') || title.toUpperCase().includes('NON-FARM') || title.toUpperCase().includes('NONFARM')) { pillLabel = 'NFP'; pillClass = 'dep-pill dep-pill-pink'; }
+                else if (title.toUpperCase().includes('CPI') || title.toUpperCase().includes('CONSUMER PRICE')) { pillLabel = 'CPI'; pillClass = 'dep-pill dep-pill-gold'; }
+                else { pillLabel = '!!'; pillClass = 'dep-pill dep-pill-red'; }
+
+                evHtml = '<span class="dep-ev-hot">';
+                if (pillLabel) evHtml += '<span class="' + pillClass + '">' + pillLabel + '</span>';
+                evHtml += title;
+                evHtml += '<span class="dep-blinkers"><span class="dep-bk dep-bk1"></span><span class="dep-bk dep-bk2"></span></span>';
+                evHtml += '</span>';
+            } else {
+                evHtml = '<span class="dep-ev">' + title + '</span>';
+            }
+
+            html += '<div class="' + rowClass + '">';
+            html += '<span class="dep-time">' + timeStr + '</span>';
+            html += '<span class="' + ccyClass + '">' + currency + '</span>';
+            html += evHtml;
+            html += '<span class="dep-val"><b>' + forecast + '</b></span>';
+            html += '<span class="dep-val">' + previous + '</span>';
+            html += '</div>';
+        });
+    });
+
+    html += '<div class="dep-footer" id="newsFooterStatus">ForexFactory \u00b7 <span style="cursor:pointer;text-decoration:underline" onclick="refreshNews()">Jetzt aktualisieren</span></div>';
+    html += '</div>';
+
+    container.innerHTML = html;
 }
 
-const KEYWORDS = [
-  { re: /FOMC|Federal\s+Funds\s+Rate|Fed\s+Chair/i, cls: 'pill-fomc', label: null },
-  { re: /Non.?Farm\s+Payroll|NFP|Nonfarm/i, cls: 'pill-nfp', label: null },
-  { re: /\bCPI\b|Consumer\s+Price/i, cls: 'pill-cpi', label: null },
-  { re: /\bGDP\b|Gross\s+Domestic/i, cls: 'pill-gdp', label: null },
-  { re: /\bPMI\b|Purchasing\s+Manager/i, cls: 'pill-pmi', label: null },
-  { re: /Interest\s+Rate|Rate\s+Decision|Rate\s+Statement/i, cls: 'pill-rate', label: null },
+function toggleNewsFilter(impact) {
+    if (newsImpactFilter.includes(impact)) {
+        newsImpactFilter = newsImpactFilter.filter(i => i !== impact);
+    } else {
+        newsImpactFilter.push(impact);
+    }
+    if (newsImpactFilter.length === 0) {
+        newsImpactFilter = ['High', 'Holiday'];
+    }
+    renderNews();
+}
+
+function setNewsPeriod(period) {
+    newsTimePeriod = period;
+    renderNews();
+}
+
+async function refreshNews() {
+    const el = document.getElementById('newsFooterStatus');
+    if (el) el.innerHTML = 'ForexFactory \u00b7 Lade...';
+    await loadNews();
+}
+
+
+// ==================== KONTRAKTWECHSEL ====================
+const MONTH_CODES = {1:'F',2:'G',3:'H',4:'J',5:'K',6:'M',7:'N',8:'Q',9:'U',10:'V',11:'X',12:'Z'};
+const MONTH_NAMES = {1:'Jan',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec'};
+
+const CONTRACTS = [
+    {symbol:'NQ', name:'E-mini Nasdaq 100', exchange:'CME \u00b7 GLOBEX', color:'#e040fb', cycle:[3,6,9,12], expiryRule:'equity'},
+    {symbol:'ES', name:'E-mini S&P 500', exchange:'CME \u00b7 GLOBEX', color:'#42a5f5', cycle:[3,6,9,12], expiryRule:'equity'},
+    {symbol:'YM', name:'E-mini Dow Jones', exchange:'CME \u00b7 CBOT', color:'#ff7043', cycle:[3,6,9,12], expiryRule:'equity'},
+    {symbol:'GC', name:'Gold', exchange:'CME \u00b7 COMEX', color:'#ffd740', cycle:[2,4,6,8,10,12], expiryRule:'gold'},
+    {symbol:'CL', name:'Crude Oil', exchange:'CME \u00b7 NYMEX', color:'#66bb6a', cycle:[1,2,3,4,5,6,7,8,9,10,11,12], expiryRule:'crude'}
 ];
 
-function tagEvent(title) {
-  for (const kw of KEYWORDS) {
-    const m = title.match(kw.re);
-    if (m) return `<span class="pill ${kw.cls}">${m[0]}</span> `;
-  }
-  return '';
+function isBusinessDay(d) {
+    const day = d.getDay();
+    return day !== 0 && day !== 6;
 }
 
-function parseCET(dateStr) {
-  // dateStr comes as e.g. "2025-03-27T08:30:00-04:00" (Eastern Time from FF)
-  // We parse it as-is and convert to CET for display
-  return new Date(dateStr);
-}
-
-function formatTimeCET(dateStr) {
-  if (!dateStr) return '&mdash;';
-  const d = new Date(dateStr);
-  if (isNaN(d)) return '&mdash;';
-  return d.toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', hour12: false });
-}
-
-function formatDateCET(dateStr) {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { timeZone: 'Europe/Berlin', weekday: 'long', month: 'short', day: 'numeric' });
-}
-
-function dateCETKey(dateStr) {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' }); // YYYY-MM-DD
-}
-
-function todayCET() {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });
-}
-
-function tomorrowCET() {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });
-}
-
-function renderCalendar() {
-  const scroll = document.getElementById('calScroll');
-  if (!calendarData.length) {
-    scroll.innerHTML = '<div class="cal-empty">No calendar data available.</div>';
-    return;
-  }
-
-  const today = todayCET();
-  const tomorrow = tomorrowCET();
-
-  let filtered = calendarData.filter(e => {
-    const impact = e.impact || 'Low';
-    if (!activeImpacts.has(impact)) return false;
-    const dk = dateCETKey(e.date);
-    if (currentRange === 'today') return dk === today;
-    if (currentRange === 'tomorrow') return dk === today || dk === tomorrow;
-    return true;
-  });
-
-  if (!filtered.length) {
-    scroll.innerHTML = '<div class="cal-empty">No events match filters.</div>';
-    return;
-  }
-
-  // Group by date
-  const groups = {};
-  filtered.forEach(e => {
-    const dk = dateCETKey(e.date);
-    if (!groups[dk]) groups[dk] = [];
-    groups[dk].push(e);
-  });
-
-  let html = '<table class="cal-table"><thead><tr><th style="width:60px">Time</th><th style="width:40px">Ccy</th><th>Event</th><th style="width:70px">Forecast</th><th style="width:70px">Previous</th></tr></thead><tbody>';
-
-  Object.keys(groups).sort().forEach(dk => {
-    const events = groups[dk];
-    const dateLabel = formatDateCET(events[0].date);
-    const isToday = dk === today;
-    html += `<tr class="cal-date-row"><td colspan="5">${dateLabel}${isToday ? ' <span style="color:var(--green);font-size:.65rem;margin-left:.4rem">TODAY</span>' : ''}</td></tr>`;
-
-    events.forEach(e => {
-      const impact = (e.impact || 'Low').toLowerCase();
-      const impactClass = impact === 'high' ? 'high' : impact === 'medium' ? 'medium' : 'low';
-      const ccy = e.country || '';
-      const ccyClass = ['USD','EUR','GBP','JPY','CAD','AUD','CHF','NZD','CNY'].includes(ccy) ? ' ' + ccy : '';
-      const tag = tagEvent(e.title || '');
-      html += `<tr class="${impactClass}">
-        <td style="font-family:monospace;color:var(--text-dim)">${formatTimeCET(e.date)}</td>
-        <td><span class="currency-badge${ccyClass}">${ccy}</span></td>
-        <td>${tag}${e.title || ''}</td>
-        <td style="font-family:monospace;text-align:right">${e.forecast || '&mdash;'}</td>
-        <td style="font-family:monospace;text-align:right">${e.previous || '&mdash;'}</td>
-      </tr>`;
-    });
-  });
-
-  html += '</tbody></table>';
-  scroll.innerHTML = html;
-}
-
-async function fetchCalendar() {
-  const scroll = document.getElementById('calScroll');
-  const meta = document.getElementById('calMeta');
-  scroll.innerHTML = '<div class="cal-loading"><span class="spinner"></span> Loading calendar data&hellip;</div>';
-
-  let data = null;
-  try {
-    const res = await fetch(API_URL);
-    if (!res.ok) throw new Error('Direct fetch failed');
-    data = await res.json();
-  } catch {
-    try {
-      const res = await fetch(CORS_PROXY + encodeURIComponent(API_URL));
-      if (!res.ok) throw new Error('Proxy fetch failed');
-      data = await res.json();
-    } catch (err) {
-      scroll.innerHTML = '<div class="cal-empty">Failed to load calendar data. Try refreshing.</div>';
-      meta.textContent = 'Error loading data';
-      return;
+function addBusinessDays(d, n) {
+    const result = new Date(d);
+    let count = 0;
+    const direction = n >= 0 ? 1 : -1;
+    const absN = Math.abs(n);
+    while (count < absN) {
+        result.setDate(result.getDate() + direction);
+        if (isBusinessDay(result)) count++;
     }
-  }
-
-  calendarData = data;
-  const now = new Date();
-  meta.textContent = 'Last refresh: ' + now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  renderCalendar();
+    return result;
 }
 
-fetchCalendar();
+function getNthFriday(year, month, n) {
+    let count = 0;
+    const d = new Date(year, month - 1, 1);
+    while (count < n) {
+        if (d.getDay() === 5) count++;
+        if (count < n) d.setDate(d.getDate() + 1);
+    }
+    return d;
+}
+
+function getLastBusinessDay(year, month) {
+    const d = new Date(year, month, 0);
+    while (!isBusinessDay(d)) d.setDate(d.getDate() - 1);
+    return d;
+}
+
+function calcExpiry(rule, contractYear, contractMonth) {
+    if (rule === 'equity') {
+        return getNthFriday(contractYear, contractMonth, 3);
+    } else if (rule === 'gold') {
+        let prevMonth = contractMonth - 1;
+        let prevYear = contractYear;
+        if (prevMonth < 1) { prevMonth = 12; prevYear--; }
+        const lastBd = getLastBusinessDay(prevYear, prevMonth);
+        return addBusinessDays(lastBd, -2);
+    } else if (rule === 'crude') {
+        let prevMonth = contractMonth - 1;
+        let prevYear = contractYear;
+        if (prevMonth < 1) { prevMonth = 12; prevYear--; }
+        let d25 = new Date(prevYear, prevMonth - 1, 25);
+        while (!isBusinessDay(d25)) d25.setDate(d25.getDate() - 1);
+        return addBusinessDays(d25, -3);
+    }
+    return new Date();
+}
+
+function getContractInfo(contract) {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    let frontYear = today.getFullYear();
+    let frontMonth = null;
+
+    for (let offset = 0; offset < 24; offset++) {
+        const m = ((today.getMonth() + offset) % 12) + 1;
+        const y = today.getFullYear() + Math.floor((today.getMonth() + offset) / 12);
+        if (contract.cycle.includes(m)) {
+            const expiry = calcExpiry(contract.expiryRule, y, m);
+            if (expiry >= today) {
+                frontMonth = m;
+                frontYear = y;
+                break;
+            }
+        }
+    }
+
+    if (!frontMonth) return null;
+
+    const expiry = calcExpiry(contract.expiryRule, frontYear, frontMonth);
+    const daysUntil = Math.ceil((expiry - today) / (1000*60*60*24));
+    const yearShort = String(frontYear).slice(-2);
+    const ticker = contract.symbol + MONTH_CODES[frontMonth] + yearShort;
+
+    let nextMonth = null, nextYear = frontYear;
+    for (let offset = 1; offset < 24; offset++) {
+        const m = ((frontMonth - 1 + offset) % 12) + 1;
+        const y = frontYear + Math.floor((frontMonth - 1 + offset) / 12);
+        if (contract.cycle.includes(m)) {
+            nextMonth = m;
+            nextYear = y;
+            break;
+        }
+    }
+    const nextTicker = nextMonth ? contract.symbol + MONTH_CODES[nextMonth] + String(nextYear).slice(-2) : '-';
+
+    return {
+        symbol: contract.symbol,
+        name: contract.name,
+        exchange: contract.exchange,
+        color: contract.color,
+        ticker,
+        contractLabel: MONTH_NAMES[frontMonth] + ' ' + frontYear,
+        expiry,
+        expiryLabel: expiry.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'}),
+        daysUntil,
+        nextTicker
+    };
+}
+
+function renderContractRollover() {
+    const container = document.getElementById('contractRolloverContent');
+    if (!container) return;
+
+    let html = '';
+    CONTRACTS.forEach(c => {
+        const info = getContractInfo(c);
+        if (!info) return;
+
+        const urgent = info.daysUntil <= 5;
+        const warning = info.daysUntil <= 10;
+        const daysColor = urgent ? 'var(--red)' : warning ? 'var(--yellow)' : 'var(--text-primary)';
+        const warningIcon = urgent ? ' <span style="animation:contractGlow 1.6s ease-in-out infinite;display:inline-block">\u26a0\ufe0f</span>' : '';
+        const topBorder = 'border-top:3px solid ' + info.color;
+
+        html += '<div style="background:var(--bg-elevated);border-radius:var(--radius);padding:10px;' + topBorder + ';font-size:.8rem">' +
+            '<div style="color:var(--text-muted);font-size:.65rem;margin-bottom:2px">' + info.exchange + '</div>' +
+            '<div style="font-weight:700;font-size:.9rem;margin-bottom:8px">' + info.name + ' (' + info.symbol + ')</div>' +
+            '<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text-muted)">Front Month</span><span style="border:1.5px solid ' + info.color + ';color:' + info.color + ';padding:1px 6px;border-radius:3px;font-weight:700;font-size:.75rem">' + info.ticker + '</span></div>' +
+            '<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text-muted)">Contract</span><span style="font-weight:600">' + info.contractLabel + '</span></div>' +
+            '<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text-muted)">Expiry</span><span style="font-weight:600">' + info.expiryLabel + '</span></div>' +
+            '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--text-muted)">Next Up</span><span style="background:' + info.color + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:700;font-size:.75rem">' + info.nextTicker + '</span></div>' +
+            '<div style="text-align:center;border-top:1px solid var(--border);padding-top:8px">' +
+            '<div style="color:var(--text-muted);font-size:.7rem">days until expiry</div>' +
+            '<div style="font-size:1.4rem;font-weight:800;color:' + daysColor + '">' + info.daysUntil + warningIcon + '</div>' +
+            '</div></div>';
+    });
+
+    container.innerHTML = html;
+}
+
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', function() {
+    renderContractRollover();
+    loadNews();
+});
 </script>
 </body>
 </html>
