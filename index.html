@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hallo Trader – Public View</title>
+    <title>Long-Story-Short Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root{--bg-primary:#0a0e17;--bg-secondary:#0f2035;--bg-card:#152742;--bg-elevated:#1b3050;--border:#254060;--text-primary:#e4eaf2;--text-secondary:#8ba4c0;--text-muted:#506880;--green:#00d68f;--green-bg:rgba(0,214,143,.12);--green-light:rgba(0,214,143,.08);--yellow:#ffb800;--yellow-bg:rgba(255,184,0,.15);--red:#ff5a6e;--red-bg:rgba(255,90,110,.12);--red-light:rgba(255,90,110,.08);--accent:#3b82f6;--accent-light:#60a5fa;--accent-bg:rgba(59,130,246,.15);--xp-gold:#f59e0b;--radius:12px}
@@ -100,7 +100,25 @@
     <div class="page-container">
         <!-- Header -->
         <div class="page-header">
-            <div class="page-title">Hallo Trader</div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:4px">
+                <svg width="48" height="48" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <filter id="neonG" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                        <filter id="neonR" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                    </defs>
+                    <!-- Green half circle -->
+                    <path d="M50 5 A45 45 0 0 0 50 95" fill="none" stroke="#00ff88" stroke-width="3" filter="url(#neonG)"/>
+                    <!-- Red half circle -->
+                    <path d="M50 5 A45 45 0 0 1 50 95" fill="none" stroke="#ff3355" stroke-width="3" filter="url(#neonR)"/>
+                    <!-- Center line -->
+                    <line x1="50" y1="8" x2="50" y2="92" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                    <!-- BUY text -->
+                    <text x="30" y="55" text-anchor="middle" font-family="monospace" font-weight="900" font-size="14" fill="#00ff88" filter="url(#neonG)">BUY</text>
+                    <!-- SELL text -->
+                    <text x="71" y="55" text-anchor="middle" font-family="monospace" font-weight="900" font-size="13" fill="#ff3355" filter="url(#neonR)">SELL</text>
+                </svg>
+                <div class="page-title">Long-Story-Short Dashboard</div>
+            </div>
             <div class="page-subtitle">Public View</div>
         </div>
 
@@ -130,7 +148,7 @@
         <!-- 3. Kontraktwechsel -->
         <div class="card">
             <div class="card-title" style="margin-bottom:12px">📋 Kontraktwechsel</div>
-            <div id="contractRolloverContent" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px"></div>
+            <div id="contractRolloverContent" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px"></div>
         </div>
 
         <!-- Footer -->
@@ -227,6 +245,9 @@ function filterNewsByPeriod(newsArray, period) {
     }
 }
 
+let lastNewsFetch = null;
+let lastNewsFetchCount = 0;
+
 async function loadNews() {
     try {
         // Try ForexFactory directly via CORS proxies
@@ -260,6 +281,8 @@ async function loadNews() {
 
         if (data) {
             newsData = data;
+            lastNewsFetch = new Date();
+            lastNewsFetchCount = data.length;
             renderNews();
         } else {
             document.getElementById('newsContent').innerHTML = '<p style="color:var(--red);text-align:center;padding:20px">News konnten nicht geladen werden</p>';
@@ -372,7 +395,14 @@ function renderNews() {
         });
     });
 
-    html += '<div class="dep-footer" id="newsFooterStatus">ForexFactory \u00b7 <span style="cursor:pointer;text-decoration:underline" onclick="refreshNews()">Jetzt aktualisieren</span></div>';
+    let footerText = 'ForexFactory';
+    if (lastNewsFetch) {
+        const d = lastNewsFetch;
+        const ts = d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' + d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+        footerText += ' \u00b7 Letzter Refresh: ' + ts + ' \u2705 ' + lastNewsFetchCount + ' Events';
+    }
+    footerText += ' \u00b7 <span style="cursor:pointer;text-decoration:underline" onclick="refreshNews()">Jetzt aktualisieren</span>';
+    html += '<div class="dep-footer" id="newsFooterStatus">' + footerText + '</div>';
     html += '</div>';
 
     container.innerHTML = html;
@@ -407,9 +437,9 @@ const MONTH_CODES = {1:'F',2:'G',3:'H',4:'J',5:'K',6:'M',7:'N',8:'Q',9:'U',10:'V
 const MONTH_NAMES = {1:'Jan',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec'};
 
 const CONTRACTS = [
-    {symbol:'NQ', name:'E-mini Nasdaq 100', exchange:'CME \u00b7 GLOBEX', color:'#e040fb', cycle:[3,6,9,12], expiryRule:'equity'},
-    {symbol:'ES', name:'E-mini S&P 500', exchange:'CME \u00b7 GLOBEX', color:'#42a5f5', cycle:[3,6,9,12], expiryRule:'equity'},
-    {symbol:'YM', name:'E-mini Dow Jones', exchange:'CME \u00b7 CBOT', color:'#ff7043', cycle:[3,6,9,12], expiryRule:'equity'},
+    {symbol:'NQ', name:'Nasdaq 100', exchange:'CME \u00b7 GLOBEX', color:'#e040fb', cycle:[3,6,9,12], expiryRule:'equity'},
+    {symbol:'ES', name:'S&P 500', exchange:'CME \u00b7 GLOBEX', color:'#42a5f5', cycle:[3,6,9,12], expiryRule:'equity'},
+    {symbol:'YM', name:'Dow Jones', exchange:'CME \u00b7 CBOT', color:'#ff7043', cycle:[3,6,9,12], expiryRule:'equity'},
     {symbol:'GC', name:'Gold', exchange:'CME \u00b7 COMEX', color:'#ffd740', cycle:[2,4,6,8,10,12], expiryRule:'gold'},
     {symbol:'CL', name:'Crude Oil', exchange:'CME \u00b7 NYMEX', color:'#66bb6a', cycle:[1,2,3,4,5,6,7,8,9,10,11,12], expiryRule:'crude'}
 ];
