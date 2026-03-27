@@ -130,7 +130,7 @@
         <!-- 3. Kontraktwechsel -->
         <div class="card">
             <div class="card-title" style="margin-bottom:12px">📋 Kontraktwechsel</div>
-            <div id="contractRolloverContent" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px"></div>
+            <div id="contractRolloverContent" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px"></div>
         </div>
 
         <!-- Footer -->
@@ -189,8 +189,8 @@ setInterval(updateTradingTimes, 1000);
 let newsData = [];
 let newsImpactFilter = ['High', 'Holiday'];
 let newsTimePeriod = 'Heute';
-let specialNewsKeywords = ['FOMC', 'NFP', 'Non-Farm', 'Nonfarm', 'CPI', 'Consumer Price Index'];
-let specialNewsCurrencies = ['USD'];
+let specialNewsKeywords = ['FOMC', 'NFP', 'Non-Farm', 'Nonfarm', 'CPI', 'Consumer Price Index', 'Unemployment Claims', 'Daylight Saving Time Shift'];
+let specialNewsCurrencies = ['USD', 'EUR'];
 
 function formatTime24h(timeStr) {
     if (!timeStr || timeStr === '\u2014' || timeStr === 'All Day' || timeStr === 'Tentative') return timeStr;
