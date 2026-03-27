@@ -155,7 +155,9 @@ function updateTradingTimes() {
         if (!timeEl) return;
 
         // Get time in timezone
-        const options = { timeZone: z.tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: z.format === '12h' };
+        const showSeconds = z.isLocal;
+        const options = { timeZone: z.tz, hour: '2-digit', minute: '2-digit', hour12: z.format === '12h' };
+        if (showSeconds) options.second = '2-digit';
         const timeStr = now.toLocaleTimeString('en-US', options);
         timeEl.textContent = timeStr;
 
