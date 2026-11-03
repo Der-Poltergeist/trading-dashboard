@@ -1,7 +1,7 @@
 {
  "source": "ForexFactory (nfs.faireconomy.media)",
- "fetched_at": "2026-11-03T10:24:30Z",
- "changed_at": "2026-11-03T10:24:30Z",
+ "fetched_at": "2026-11-03T12:26:12Z",
+ "changed_at": "2026-11-03T12:26:12Z",
  "events": [
   {
    "title": "Daylight Saving Time Shift",
@@ -254,7 +254,7 @@
   {
    "title": "10-y Bond Auction",
    "country": "GBP",
-   "date": "2026-11-03T05:33:00-05:00",
+   "date": "2026-11-03T05:02:00-05:00",
    "impact": "Low",
    "forecast": "",
    "previous": "5.42|3.6"
