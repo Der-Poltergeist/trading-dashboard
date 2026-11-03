@@ -226,10 +226,50 @@ function formatTime24h(timeStr) {
     return (h < 10 ? '0' : '') + h + ':' + m;
 }
 
+// frontend-20: Daten kommen über fremde CORS-Proxies – jede Ausgabe per innerHTML wird escaped
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// frontend-20: Datum und Uhrzeit in Europe/Berlin (die Seite zeigt CET/CEST) aus dem Feed-Zeitstempel
+// (z. B. "2026-03-23T08:45:00-04:00"); der Feed hat kein eigenes time-Feld
+const BERLIN_FMT = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit',
+    day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+function berlinParts(d) {
+    const p = {};
+    BERLIN_FMT.formatToParts(d).forEach(x => { p[x.type] = x.value; });
+    return { date: p.year + '-' + p.month + '-' + p.day, time: p.hour + ':' + p.minute };
+}
+function addDaysISO(iso, n) {
+    const [y, m, d] = iso.split('-').map(Number);
+    const t = new Date(Date.UTC(y, m - 1, d + n));
+    return t.getUTCFullYear() + '-' + String(t.getUTCMonth() + 1).padStart(2, '0') + '-' + String(t.getUTCDate()).padStart(2, '0');
+}
+function feedItemToEvent(item) {
+    item = item || {};
+    const dt = item.date ? new Date(item.date) : null;
+    const bp = dt && !isNaN(dt.getTime()) ? berlinParts(dt) : { date: '', time: '' };
+    const impact = String(item.impact || 'Low');
+    return {
+        date: bp.date,
+        time: impact === 'Holiday' ? 'All Day' : bp.time,
+        currency: String(item.country || ''),
+        title: String(item.title || ''),
+        impact: impact,
+        forecast: String(item.forecast || ''),
+        previous: String(item.previous || '')
+    };
+}
+// frontend-25: Kalendertage ohne Uhrzeit, unabhängig von der Zeitumstellung
+function calendarDaysBetween(from, to) {
+    return Math.round((Date.UTC(to.getFullYear(), to.getMonth(), to.getDate())
+        - Date.UTC(from.getFullYear(), from.getMonth(), from.getDate())) / 86400000);
+}
+
 function filterNewsByPeriod(newsArray, period) {
-    const now = new Date();
-    const todayISO = now.toISOString().split('T')[0];
-    const tomorrowISO = new Date(now.getTime() + 24*60*60*1000).toISOString().split('T')[0];
+    const todayISO = berlinParts(new Date()).date;   // „Heute“ in Berlin, nicht in UTC (frontend-20)
+    const tomorrowISO = addDaysISO(todayISO, 1);
 
     if (period === 'Heute') {
         return newsArray.filter(item => item.date && item.date.includes(todayISO));
@@ -248,48 +288,51 @@ function filterNewsByPeriod(newsArray, period) {
 let lastNewsFetch = null;
 let lastNewsFetchCount = 0;
 
+// E19 / frontend-20: News kommen als statisches news.json neben dieser Seite. Die Datei erzeugt die GitHub Action
+// .github/workflows/news.yml des Pages-Repos serverseitig aus dem ForexFactory-Feed – keine fremden CORS-Proxies,
+// keine Besucher-IPs an Dritte. Fehlt die Datei oder ist sie ungültig, bleibt die Seite ohne News bedienbar.
+const NEWS_JSON_URL = 'news.json';
+
+function parseNewsFile(raw) {
+    const items = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.events) ? raw.events : null);
+    if (!items) return null;
+    const fetchedAt = raw && !Array.isArray(raw) && raw.fetched_at ? new Date(raw.fetched_at) : null;
+    return {
+        events: items.filter(item => item && typeof item === 'object').map(feedItemToEvent),
+        fetchedAt: fetchedAt && !isNaN(fetchedAt.getTime()) ? fetchedAt : null
+    };
+}
+
+function showNewsUnavailable(text) {
+    document.getElementById('newsContent').innerHTML =
+        '<p style="color:var(--text-muted);text-align:center;padding:20px">' + escapeHtml(text) + '</p>';
+}
+
+let newsRefreshFailed = false;  // letzter Abruf fehlgeschlagen, angezeigt wird der letzte gute Stand
+
 async function loadNews() {
+    let parsed = null;
     try {
-        // Try ForexFactory directly via CORS proxies
-        const proxies = [
-            'https://api.allorigins.win/raw?url=',
-            'https://corsproxy.io/?',
-            ''
-        ];
-        const ffUrl = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
-        let data = null;
-
-        for (const proxy of proxies) {
-            try {
-                const res = await fetch(proxy + encodeURIComponent(ffUrl), { signal: AbortSignal.timeout(8000) });
-                if (res.ok) {
-                    const raw = await res.json();
-                    // Transform ForexFactory format to our format
-                    data = raw.map(item => ({
-                        date: item.date ? item.date.split('T')[0] : '',
-                        time: item.time || '',
-                        currency: item.country || '',
-                        title: item.title || '',
-                        impact: item.impact || 'Low',
-                        forecast: item.forecast || '',
-                        previous: item.previous || ''
-                    }));
-                    break;
-                }
-            } catch(e) { continue; }
-        }
-
-        if (data) {
-            newsData = data;
-            lastNewsFetch = new Date();
-            lastNewsFetchCount = data.length;
+        const res = await fetch(NEWS_JSON_URL, { cache: 'no-cache', signal: AbortSignal.timeout(8000) });
+        parsed = res.ok ? parseNewsFile(await res.json().catch(() => null)) : null;
+    } catch(e) {
+        parsed = null;
+    }
+    // Leere oder ungültige Datei zählt als Fehlschlag: nie gute News durch nichts ersetzen
+    if (!parsed || parsed.events.length === 0) {
+        if (newsData.length > 0) {
+            newsRefreshFailed = true;            // letzten guten Stand weiter zeigen (Footer mit Hinweis)
             renderNews();
         } else {
-            document.getElementById('newsContent').innerHTML = '<p style="color:var(--red);text-align:center;padding:20px">News konnten nicht geladen werden</p>';
+            showNewsUnavailable('News derzeit nicht verfügbar (news.json fehlt oder ist ungültig)');
         }
-    } catch(e) {
-        document.getElementById('newsContent').innerHTML = '<p style="color:var(--red);text-align:center;padding:20px">Fehler beim Laden</p>';
+        return;
     }
+    newsRefreshFailed = false;
+    newsData = parsed.events;
+    lastNewsFetch = parsed.fetchedAt;          // letzter erfolgreicher Lauf der Action („Stand“)
+    lastNewsFetchCount = parsed.events.length;
+    renderNews();
 }
 
 function renderNews() {
@@ -343,29 +386,29 @@ function renderNews() {
         let displayDate = dateKey;
         try {
             const d = new Date(dateKey + 'T00:00:00');
-            const today = new Date(); today.setHours(0,0,0,0);
-            const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-            const dStr = d.toISOString().split('T')[0];
-            const prefix = dStr === today.toISOString().split('T')[0] ? 'Today' : dStr === tomorrow.toISOString().split('T')[0] ? 'Tomorrow' : '';
-            const dayName = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            // dateKey ist ein Berliner Kalendertag \u2013 mit dem Berliner Heute/Morgen vergleichen (nicht UTC)
+            const todayISO = berlinParts(new Date()).date;
+            const prefix = dateKey === todayISO ? 'Today' : dateKey === addDaysISO(todayISO, 1) ? 'Tomorrow' : '';
+            const dayName = isNaN(d.getTime()) ? dateKey : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
             displayDate = prefix ? prefix + ' \u2014 ' + dayName : dayName;
         } catch(e) {}
 
-        html += '<div class="dep-sep">' + displayDate + '</div>';
+        html += '<div class="dep-sep">' + escapeHtml(displayDate) + '</div>';
 
         byDate[dateKey].forEach(item => {
-            const timeStr = formatTime24h(item.time) || '\u2014';
+            // frontend-20: alle Feed-Werte escaped; die W\u00e4hrungs-Klasse nur aus Buchstaben
+            const timeStr = escapeHtml(formatTime24h(item.time) || '\u2014');
             const currency = (item.currency || '?').toUpperCase();
             const title = item.title || 'Unknown Event';
-            const forecast = item.forecast || '\u2014';
-            const previous = item.previous || '\u2014';
+            const forecast = escapeHtml(item.forecast || '\u2014');
+            const previous = escapeHtml(item.previous || '\u2014');
 
             const keywordMatch = specialNewsKeywords.some(kw => title.toUpperCase().includes(kw.toUpperCase()));
             const currencyMatch = specialNewsCurrencies.length === 0 || specialNewsCurrencies.some(c => c.toUpperCase() === currency.toUpperCase());
             const isSpecial = keywordMatch && currencyMatch;
             const rowClass = isSpecial ? 'dep-row dep-hot' : 'dep-row';
 
-            const ccyClass = 'dep-ccy dep-ccy-' + currency.toLowerCase();
+            const ccyClass = 'dep-ccy dep-ccy-' + currency.toLowerCase().replace(/[^a-z]/g, '');
 
             let evHtml = '';
             if (isSpecial) {
@@ -378,16 +421,16 @@ function renderNews() {
 
                 evHtml = '<span class="dep-ev-hot">';
                 if (pillLabel) evHtml += '<span class="' + pillClass + '">' + pillLabel + '</span>';
-                evHtml += title;
+                evHtml += escapeHtml(title);
                 evHtml += '<span class="dep-blinkers"><span class="dep-bk dep-bk1"></span><span class="dep-bk dep-bk2"></span></span>';
                 evHtml += '</span>';
             } else {
-                evHtml = '<span class="dep-ev">' + title + '</span>';
+                evHtml = '<span class="dep-ev">' + escapeHtml(title) + '</span>';
             }
 
             html += '<div class="' + rowClass + '">';
             html += '<span class="dep-time">' + timeStr + '</span>';
-            html += '<span class="' + ccyClass + '">' + currency + '</span>';
+            html += '<span class="' + ccyClass + '">' + escapeHtml(currency) + '</span>';
             html += evHtml;
             html += '<span class="dep-val"><b>' + forecast + '</b></span>';
             html += '<span class="dep-val">' + previous + '</span>';
@@ -399,8 +442,9 @@ function renderNews() {
     if (lastNewsFetch) {
         const d = lastNewsFetch;
         const ts = d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' + d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-        footerText += ' \u00b7 Letzter Refresh: ' + ts + ' \u2705 ' + lastNewsFetchCount + ' Events';
+        footerText += ' \u00b7 Stand: ' + ts + ' \u2705 ' + Number(lastNewsFetchCount) + ' Events';
     }
+    if (newsRefreshFailed) footerText += ' \u00b7 Aktualisierung fehlgeschlagen \u2013 letzter Stand';
     footerText += ' \u00b7 <span style="cursor:pointer;text-decoration:underline" onclick="refreshNews()">Jetzt aktualisieren</span>';
     html += '<div class="dep-footer" id="newsFooterStatus">' + footerText + '</div>';
     html += '</div>';
@@ -520,7 +564,7 @@ function getContractInfo(contract) {
     if (!frontMonth) return null;
 
     const expiry = calcExpiry(contract.expiryRule, frontYear, frontMonth);
-    const daysUntil = Math.ceil((expiry - today) / (1000*60*60*24));
+    const daysUntil = calendarDaysBetween(today, expiry);  // frontend-25: kein Extratag über die Zeitumstellung
     const yearShort = String(frontYear).slice(-2);
     const ticker = contract.symbol + MONTH_CODES[frontMonth] + yearShort;
 

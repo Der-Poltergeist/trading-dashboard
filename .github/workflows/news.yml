@@ -1,0 +1,91 @@
+# News für das Public-Dashboard (E19 / frontend-20): lädt den ForexFactory-Wochenkalender serverseitig und legt
+# ihn als news.json neben index.html ab. Die Seite liest nur noch diese Datei – keine CORS-Proxies, keine
+# Besucher-IPs an Dritte.
+#
+# Ort: Diese Datei gehört in das separate GitHub-Pages-Repo, in das der Inhalt von public-dashboard/ gepusht wird
+# (siehe README.md). Dort liegt sie unter .github/workflows/news.yml. Im TradingPanel-Repo läuft sie nicht,
+# weil GitHub Actions nur .github/workflows/ im Repo-Root auswertet.
+#
+# Jeder erfolgreiche Lauf schreibt fetched_at neu und committet (ca. 6 Commits/Tag); ein fehlgeschlagener Lauf
+# (Feed nicht erreichbar, leer oder ungültig) ändert news.json nicht – die Seite zeigt weiter den letzten Stand.
+name: News aktualisieren
+
+on:
+  schedule:
+    - cron: '17 */4 * * *'   # alle 4 Stunden (UTC), versetzt zur vollen Stunde
+  workflow_dispatch:          # manuell: Actions → „News aktualisieren“ → Run workflow
+
+permissions:
+  contents: write             # news.json committen
+
+concurrency:
+  group: news-json
+  cancel-in-progress: false
+
+jobs:
+  news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Auf den vollen Commit-SHA gepinnt (Tag v4.4.0, geprüft über die GitHub-API: refs/tags/v4.4.0 → Commit
+      # 11d5960a…, identisch mit refs/tags/v4). Beim Aktualisieren SHA und Kommentar gemeinsam ändern.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Feed laden, prüfen und news.json schreiben
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --max-time 30 --retry 3 --retry-delay 15 \
+            --user-agent 'TradingPanel-Public-Dashboard' \
+            --output "$RUNNER_TEMP/feed.json" \
+            'https://nfs.faireconomy.media/ff_calendar_thisweek.json'
+          python3 - "$RUNNER_TEMP/feed.json" news.json <<'PY'
+          import datetime, json, os, sys
+          feed_path, out_path = sys.argv[1], sys.argv[2]
+          with open(feed_path, encoding='utf-8') as f:
+              feed = json.load(f)
+          if not isinstance(feed, list) or not feed:
+              sys.exit('Feed ist keine nicht-leere Liste – news.json bleibt unverändert')
+          limits = {'title': 200, 'country': 10, 'date': 40, 'impact': 20, 'forecast': 50, 'previous': 50}
+          events = []
+          for item in feed[:1000]:
+              if not isinstance(item, dict):
+                  continue
+              ev = {k: ('' if item.get(k) is None else str(item.get(k)))[:n] for k, n in limits.items()}
+              try:
+                  datetime.datetime.fromisoformat(ev['date'])
+              except ValueError:
+                  continue
+              if ev['title']:
+                  events.append(ev)
+          if not events:
+              sys.exit('Keine gültigen Events – news.json bleibt unverändert')
+          try:
+              with open(out_path, encoding='utf-8') as f:
+                  old = json.load(f)
+          except (OSError, ValueError):
+              old = None
+          # fetched_at = letzter erfolgreicher Lauf („Stand“ auf der Seite), changed_at = letzte inhaltliche Änderung
+          now = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+          unchanged = isinstance(old, dict) and old.get('events') == events and old.get('changed_at')
+          changed_at = old['changed_at'] if unchanged else now
+          tmp_path = out_path + '.tmp'
+          with open(tmp_path, 'w', encoding='utf-8') as f:
+              json.dump({'source': 'ForexFactory (nfs.faireconomy.media)', 'fetched_at': now,
+                         'changed_at': changed_at, 'events': events}, f, ensure_ascii=False, indent=1)
+              f.write('\n')
+          os.replace(tmp_path, out_path)   # nie eine halb geschriebene news.json
+          print(f"{len(events)} Events geschrieben ({'unverändert' if unchanged else 'geändert'})")
+          PY
+
+      - name: news.json committen (jeder erfolgreiche Lauf aktualisiert fetched_at)
+        run: |
+          set -euo pipefail
+          git add news.json
+          if git diff --cached --quiet; then
+            echo 'news.json unverändert'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'News aktualisiert'
+          git push
