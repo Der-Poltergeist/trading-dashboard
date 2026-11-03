@@ -27,9 +27,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      # Auf den vollen Commit-SHA gepinnt (Tag v4.4.0, geprüft über die GitHub-API: refs/tags/v4.4.0 → Commit
-      # 11d5960a…, identisch mit refs/tags/v4). Beim Aktualisieren SHA und Kommentar gemeinsam ändern.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # Auf den vollen Commit-SHA gepinnt (Tag v7.0.1, Node 24, geprüft über die GitHub-API: refs/tags/v7.0.1 →
+      # Commit 3d3c42e5…, identisch mit refs/tags/v7). Beim Aktualisieren SHA und Kommentar gemeinsam ändern.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Feed laden, prüfen und news.json schreiben
         run: |
