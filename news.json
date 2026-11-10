@@ -1,7 +1,7 @@
 {
  "source": "ForexFactory (nfs.faireconomy.media)",
- "fetched_at": "2026-11-10T00:38:27Z",
- "changed_at": "2026-11-10T00:38:27Z",
+ "fetched_at": "2026-11-10T04:21:55Z",
+ "changed_at": "2026-11-10T04:21:55Z",
  "events": [
   {
    "title": "RBA Assist Gov Hunter Speaks",
@@ -172,20 +172,20 @@
    "previous": "-13"
   },
   {
-   "title": "Trade Balance",
-   "country": "CNY",
-   "date": "2026-11-09T22:03:00-05:00",
-   "impact": "Low",
-   "forecast": "855B",
-   "previous": "906B"
-  },
-  {
    "title": "USD-Denominated Trade Balance",
    "country": "CNY",
-   "date": "2026-11-09T22:04:00-05:00",
+   "date": "2026-11-09T21:32:00-05:00",
    "impact": "Low",
    "forecast": "126.5B",
    "previous": "133.5B"
+  },
+  {
+   "title": "Trade Balance",
+   "country": "CNY",
+   "date": "2026-11-09T21:33:00-05:00",
+   "impact": "Low",
+   "forecast": "855B",
+   "previous": "906B"
   },
   {
    "title": "30-y Bond Auction",
