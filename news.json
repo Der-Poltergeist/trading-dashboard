@@ -1,7 +1,7 @@
 {
  "source": "ForexFactory (nfs.faireconomy.media)",
- "fetched_at": "2026-11-16T12:34:39Z",
- "changed_at": "2026-11-16T04:26:48Z",
+ "fetched_at": "2026-11-16T16:23:36Z",
+ "changed_at": "2026-11-16T16:23:36Z",
  "events": [
   {
    "title": "BusinessNZ Services Index",
@@ -166,7 +166,7 @@
   {
    "title": "Cleveland Fed Inflation Expectations",
    "country": "USD",
-   "date": "2026-11-16T09:48:00-05:00",
+   "date": "2026-11-16T09:45:00-05:00",
    "impact": "Low",
    "forecast": "",
    "previous": "3.3%"
