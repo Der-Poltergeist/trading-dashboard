@@ -1,7 +1,7 @@
 {
  "source": "ForexFactory (nfs.faireconomy.media)",
- "fetched_at": "2026-11-19T16:21:50Z",
- "changed_at": "2026-11-19T16:21:50Z",
+ "fetched_at": "2026-11-19T20:20:55Z",
+ "changed_at": "2026-11-19T20:20:55Z",
  "events": [
   {
    "title": "BusinessNZ Services Index",
@@ -822,7 +822,7 @@
   {
    "title": "Mortgage Delinquencies",
    "country": "USD",
-   "date": "2026-11-19T11:30:00-05:00",
+   "date": "2026-11-19T10:46:00-05:00",
    "impact": "Low",
    "forecast": "",
    "previous": "4.37%"
